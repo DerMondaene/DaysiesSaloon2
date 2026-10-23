@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daysie's Salon II - Game & Watch LCD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0b0d10;
+      font-family: monospace, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Handheld Burgundy Casing */
+    .gw-casing {
+      background: linear-gradient(145deg, #7a0c1a 0%, #9e1424 25%, #630813 60%, #42030a 100%);
+      box-shadow: 
+        0 15px 40px rgba(0, 0, 0, 0.9),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        inset 0 -6px 8px rgba(0, 0, 0, 0.7);
+      border: 4px solid #2b0206;
+    }
+
+    /* Golden Metallic Faceplate */
+    .gw-plate {
+      background: linear-gradient(180deg, #d4af37 0%, #f3e5ab 35%, #aa7708 70%, #8b5a00 100%);
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4), 0 2px 5px rgba(0,0,0,0.5);
+      border: 2px solid #5c3e02;
+    }
+
+    /* Retro LCD Display Screen Frame */
+    .lcd-screen {
+      background-color: #9cb08d;
+      box-shadow: 
+        inset 4px 4px 12px rgba(0, 0, 0, 0.6),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.2);
+      border: 6px solid #222;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scanline / Grid overlay */
+    .lcd-screen::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(rgba(18, 28, 12, 0.05) 50%, rgba(0, 0, 0, 0.12) 50%);
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Glass Reflection */
+    .lcd-screen::after {
+      content: "";
+      position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: linear-gradient(
+        135deg, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.03) 40%, 
+        transparent 50%
+      );
+      pointer-events: none;
+      z-index: 21;
+    }
+
+    .lcd-font {
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+    }
+
+    /* Unlit / Ghost LCD Segments */
+    .lcd-ghost {
+      fill: rgba(35, 48, 25, 0.08);
+      stroke: rgba(35, 48, 25, 0.06);
+    }
+
+    /* Active / Lit LCD Segments */
+    .lcd-active {
+      fill: #1a2412;
+      stroke: #1a2412;
+    }
+
+    .lcd-text-active {
+      color: #1a2412;
+      text-shadow: 0 0 1px rgba(26, 36, 18, 0.3);
+    }
+
+    .lcd-text-ghost {
+      color: rgba(35, 48, 25, 0.15);
+    }
+
+    /* Physical Buttons */
+    .gw-btn {
+      box-shadow: 
+        0 4px 0 #3a0000,
+        0 5px 10px rgba(0,0,0,0.6),
+        inset 0 1px 2px rgba(255,255,255,0.4);
+      transition: all 0.05s ease;
+    }
+    .gw-btn:active, .gw-btn.active {
+      transform: translateY(3px);
+      box-shadow: 
+        0 1px 0 #3a0000,
+        inset 0 2px 4px rgba(0,0,0,0.6);
+    }
+
+    /* D-Pad Button Styling */
+    .d-pad-btn {
+      background: linear-gradient(135deg, #2c2c2c, #111111);
+      border: 1px solid #444;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.2), 0 2px 4px rgba(0,0,0,0.8);
+    }
+    .d-pad-btn:active, .d-pad-btn.active {
+      background: #000;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+    }
+
+    .lang-btn {
+      font-weight: 800;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 10px;
+      transition: all 0.15s ease;
+    }
+    .lang-btn.active-lang {
+      background-color: #1a2412;
+      color: #d4af37;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .lang-btn.inactive-lang {
+      background-color: rgba(0,0,0,0.2);
+      color: #333;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+    .blink-anim {
+      animation: blink 0.5s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-2 sm:p-4">
+
+  <!-- HANDHELD CASE -->
+  <div class="gw-casing w-full max-w-3xl rounded-3xl p-3 sm:p-6 text-stone-900 shadow-2xl relative">
+    
+    <!-- GOLDEN METAL FRONT PLATE -->
+    <div class="gw-plate rounded-2xl p-2 sm:p-5 border-2 border-amber-800">
+      
+      <!-- TOP LOGO BRANDING & LANGUAGE SELECTOR -->
+      <div class="flex justify-between items-center mb-2 px-1">
+        <div class="flex items-center space-x-1 sm:space-x-2">
+          <span class="font-extrabold text-stone-900 text-xs sm:text-base tracking-widest">DAYSIE'S</span>
+          <span class="bg-red-800 text-amber-200 text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded border border-amber-500">SALON II</span>
+        </div>
+
+        <!-- Language Selector (DE / EN / FR) -->
+        <div class="flex items-center space-x-1 bg-amber-900/20 p-1 rounded-md border border-amber-800/40">
+          <button id="lang-de" class="lang-btn active-lang">DE</button>
+          <button id="lang-en" class="lang-btn inactive-lang">EN</button>
+          <button id="lang-fr" class="lang-btn inactive-lang">FR</button>
+        </div>
+
+        <div class="text-[9px] sm:text-xs font-black tracking-widest text-stone-900 hidden sm:block">GAME & WATCH</div>
+      </div>
+
+      <!-- MAIN LCD SCREEN DISPLAY -->
+      <div class="lcd-screen rounded-xl p-2 sm:p-4 relative min-h-[340px] sm:min-h-[430px] flex flex-col justify-between">
+        
+        <!-- TOP STATUS BAR: Cash, Current Day, LCD Day Timer, Game Mode, 8 Misses -->
+        <div class="flex justify-between items-start z-10 border-b border-stone-800/20 pb-2">
+          
+          <!-- Cash & Highest Revenue -->
+          <div class="flex flex-col">
+            <div id="lbl-cash" class="text-[8px] sm:text-[10px] text-stone-900 font-extrabold uppercase tracking-wider">SALON KASSE</div>
+            <div class="relative text-xl sm:text-3xl font-extrabold tracking-widest lcd-font leading-none">
+              <span class="lcd-text-ghost absolute left-0">$88888</span>
+              <span id="cash-display" class="lcd-text-active relative">$ 0000</span>
+            </div>
+            <div class="text-[7px] sm:text-[9px] text-stone-800 font-bold mt-1"><span id="lbl-record">REKORD</span>: <span id="highscore-display">$ 0000</span></div>
+          </div>
+
+          <!-- Center Day Info & Day Countdown Timer -->
+          <div class="text-center flex flex-col items-center">
+            <div class="flex items-center space-x-2">
+              <div id="game-mode-badge" class="text-[8px] sm:text-[10px] font-extrabold text-red-950 bg-stone-800/10 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                GAME A
+              </div>
+              <div id="day-display" class="text-[9px] sm:text-[11px] font-black text-stone-900 uppercase">
+                TAG 1
+              </div>
+            </div>
+
+            <!-- RETRO 7-SEGMENT LCD DAY TIMER -->
+            <div class="my-0.5 flex flex-col items-center">
+              <div id="lbl-daytime" class="text-[7px] sm:text-[8px] text-stone-900 font-extrabold uppercase tracking-wider">TAGES-ZEIT</div>
+              <div class="relative text-2xl sm:text-3xl font-extrabold tracking-widest lcd-font leading-none px-2 py-0.5 bg-stone-900/10 rounded border border-stone-900/10">
+                <span class="lcd-text-ghost absolute left-0 right-0 text-center">88</span>
+                <span id="timer-display" class="lcd-text-active relative text-stone-950">25</span>
+              </div>
+            </div>
+
+            <div id="status-text" class="text-[10px] sm:text-xs font-black text-stone-900 h-4 uppercase tracking-wider">
+              DRÜCKE GAME A/B
+            </div>
+          </div>
+
+          <!-- 8 Miss Counters & Debt Indicator -->
+          <div class="flex flex-col items-end">
+            <div id="lbl-misses" class="text-[8px] sm:text-[10px] text-stone-900 font-extrabold uppercase tracking-wider">FEHLER (MAX 8)</div>
+            <div class="grid grid-cols-4 gap-1 mt-1" id="miss-container">
+              <!-- Injected via JS -->
+            </div>
+            <!-- DEBT DAY DISPLAY -->
+            <div id="debt-badge" class="mt-1 text-[8px] sm:text-[9px] font-black text-red-900 bg-red-950/20 px-1 py-0.5 rounded border border-red-900/30 hidden">
+              <span id="lbl-debt">SCHULDEN</span>: <span id="debt-days-text">0/5</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIDDLE GRAPHICS AREA -->
+        <div class="grid grid-cols-12 gap-2 my-2 flex-1 items-center relative">
+          
+          <!-- LEFT LCD PANEL: Style Info, Hair Progress, Key Combos & Price Multiplier -->
+          <div class="col-span-5 sm:col-span-4 flex flex-col justify-between h-full bg-stone-900/5 p-2 rounded-lg border border-stone-800/10">
+            
+            <div>
+              <div id="lbl-client-title" class="text-[7px] sm:text-[9px] text-stone-800 font-extrabold uppercase tracking-tight text-center">
+                AKTUELLE KUNDIN
+              </div>
+              <div id="style-name-display" class="text-[10px] sm:text-xs text-stone-950 font-extrabold text-center mt-1 leading-tight uppercase border-b border-stone-800/20 pb-1.5 h-8 flex items-center justify-center">
+                ---
+              </div>
+            </div>
+
+            <!-- Combo Sequence Keys Display -->
+            <div class="my-1 text-center">
+              <div id="lbl-arrow-steps" class="text-[7px] sm:text-[8px] text-stone-800 font-bold mb-1 uppercase">PFEIL-SCHRITTE</div>
+              <div id="sequence-container" class="flex flex-wrap gap-1 justify-center items-center min-h-[45px]">
+                <!-- Arrow LCD boxes injected by JS -->
+              </div>
+            </div>
+
+            <!-- Progress Bar, Price Multiplier & Cash Value -->
+            <div class="text-center border-t border-stone-800/20 pt-1">
+              <div class="flex justify-between items-center text-[7px] sm:text-[8px] text-stone-800 font-bold mb-0.5 px-1">
+                <span><span id="lbl-prices">PREISE</span>: <span id="price-mult-display" class="text-stone-950 font-black">100%</span></span>
+                <span><span id="lbl-fee">HONORAR</span>: <span id="reward-display" class="text-stone-950 font-extrabold">+$30</span></span>
+              </div>
+              <div class="w-full bg-stone-800/20 h-2 rounded-full overflow-hidden">
+                <div id="progress-bar" class="bg-stone-900 h-full w-0 transition-all duration-200"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT LCD PANEL: DAYSIE & CLIENT HEAD SILHOUETTE -->
+          <div class="col-span-7 sm:col-span-8 h-full flex justify-center items-center relative min-h-[200px]">
+            
+            <!-- VECTOR LCD GRAPHICS -->
+            <svg viewBox="0 0 340 240" class="w-full max-w-[320px] sm:max-w-[380px] h-auto overflow-visible">
+              
+              <!-- BACKGROUND GHOST SEGMENTS -->
+              <g class="lcd-ghost">
+                <path d="M 30 220 L 45 150 L 75 150 L 90 220 Z" />
+                <ellipse cx="60" cy="120" rx="16" ry="18" />
+                <ellipse cx="60" cy="98" rx="8" ry="8" />
+                <path d="M 70 155 L 100 135 L 115 140" stroke="rgba(35, 48, 25, 0.1)" stroke-width="4" fill="none"/>
+
+                <path d="M 150 230 C 160 175, 185 165, 210 160 L 210 145 L 260 145 L 260 160 C 285 165, 310 175, 320 230 Z" />
+                <ellipse cx="235" cy="122" rx="36" ry="42" />
+                <ellipse cx="202" cy="126" rx="5" ry="9" />
+                <circle cx="201" cy="138" r="7" stroke="rgba(35, 48, 25, 0.1)" stroke-width="2" fill="none" />
+              </g>
+
+              <!-- ACTIVE BASE GRAPHICS -->
+              <g class="lcd-active">
+                <path d="M 150 230 C 160 175, 185 165, 210 160 L 210 145 L 260 145 L 260 160 C 285 165, 310 175, 320 230 Z" />
+                <ellipse cx="235" cy="122" rx="34" ry="40" />
+                <ellipse cx="203" cy="126" rx="4" ry="8" />
+                <circle cx="202" cy="138" r="6" stroke="#9cb08d" stroke-width="2" fill="none" />
+
+                <path d="M 30 220 L 45 150 L 75 150 L 90 220 Z" />
+                <ellipse cx="60" cy="120" rx="15" ry="17" />
+                <ellipse cx="60" cy="98" rx="8" ry="8" />
+              </g>
+
+              <!-- DAYSIE ANIMATED ARM -->
+              <g id="daysie-arm-idle" class="lcd-active">
+                <path d="M 70 155 L 95 150 L 115 160" stroke="#1a2412" stroke-width="4" fill="none"/>
+              </g>
+              <g id="daysie-arm-styling" class="lcd-ghost">
+                <path d="M 70 155 L 105 130 L 140 120" stroke="#1a2412" stroke-width="4" fill="none"/>
+                <path d="M 140 115 L 155 125 M 140 125 L 155 115" stroke="#1a2412" stroke-width="3"/>
+              </g>
+
+              <!-- 5 AFRICAN HAIRSTYLES LCD OVERLAYS -->
+              <!-- 1. CLASSIC AFRO PUFF -->
+              <g id="style-afro">
+                <path id="afro-1" class="lcd-ghost" d="M 235 82 C 210 75, 180 85, 185 110 Z" />
+                <path id="afro-2" class="lcd-ghost" d="M 235 82 C 220 50, 180 50, 195 80 Z" />
+                <path id="afro-3" class="lcd-ghost" d="M 235 82 C 230 40, 260 40, 250 75 Z" />
+                <path id="afro-4" class="lcd-ghost" d="M 235 82 C 275 45, 295 70, 270 95 Z" />
+                <path id="afro-5" class="lcd-ghost" d="M 235 82 C 295 90, 290 125, 272 120 Z" />
+                <path id="afro-6" class="lcd-ghost" d="M 235 82 C 285 130, 270 160, 252 145 Z" />
+                <path id="afro-7" class="lcd-ghost" d="M 235 82 C 235 150, 215 165, 210 135 Z" />
+                <path id="afro-8" class="lcd-ghost" d="M 235 82 C 185 140, 180 115, 195 110 Z" />
+              </g>
+
+              <!-- 2. BANTU KNOTS -->
+              <g id="style-bantu">
+                <circle id="bantu-1" class="lcd-ghost" cx="195" cy="95" r="11" />
+                <circle id="bantu-2" class="lcd-ghost" cx="220" cy="72" r="12" />
+                <circle id="bantu-3" class="lcd-ghost" cx="252" cy="70" r="12" />
+                <circle id="bantu-4" class="lcd-ghost" cx="276" cy="92" r="11" />
+                <circle id="bantu-5" class="lcd-ghost" cx="270" cy="122" r="10" />
+                <circle id="bantu-6" class="lcd-ghost" cx="210" cy="130" r="9" />
+              </g>
+
+              <!-- 3. FULANI CORNROWS -->
+              <g id="style-fulani">
+                <path id="fulani-1" class="lcd-ghost" d="M 200 120 C 210 90, 240 80, 270 82" stroke="#1a2412" stroke-width="4" fill="none" />
+                <path id="fulani-2" class="lcd-ghost" d="M 200 110 C 215 82, 245 72, 272 75" stroke="#1a2412" stroke-width="4" fill="none" />
+                <path id="fulani-3" class="lcd-ghost" d="M 202 100 C 220 74, 250 64, 270 68" stroke="#1a2412" stroke-width="4" fill="none" />
+                <path id="fulani-4" class="lcd-ghost" d="M 208 90 C 225 66, 252 56, 265 60" stroke="#1a2412" stroke-width="4" fill="none" />
+                <path id="fulani-5" class="lcd-ghost" d="M 198 125 L 192 165 L 195 170" stroke="#1a2412" stroke-width="3" fill="none" />
+                <path id="fulani-6" class="lcd-ghost" d="M 205 130 L 200 175 L 203 180" stroke="#1a2412" stroke-width="3" fill="none" />
+              </g>
+
+              <!-- 4. GODDESS BOX BRAIDS -->
+              <g id="style-goddess">
+                <path id="goddess-1" class="lcd-ghost" d="M 260 85 C 280 110, 285 150, 280 200" stroke="#1a2412" stroke-width="5" fill="none" />
+                <path id="goddess-2" class="lcd-ghost" d="M 250 82 C 270 110, 275 160, 270 205" stroke="#1a2412" stroke-width="5" fill="none" />
+                <path id="goddess-3" class="lcd-ghost" d="M 238 80 C 255 110, 265 165, 260 210" stroke="#1a2412" stroke-width="5" fill="none" />
+                <path id="goddess-4" class="lcd-ghost" d="M 225 82 C 240 115, 250 165, 248 210" stroke="#1a2412" stroke-width="5" fill="none" />
+                <path id="goddess-5" class="lcd-ghost" d="M 212 88 C 225 120, 235 165, 235 205" stroke="#1a2412" stroke-width="5" fill="none" />
+                <path id="goddess-6" class="lcd-ghost" d="M 200 100 C 210 130, 220 165, 222 200" stroke="#1a2412" stroke-width="5" fill="none" />
+              </g>
+
+              <!-- 5. FROHAWK UPDO -->
+              <g id="style-frohawk">
+                <path id="frohawk-1" class="lcd-ghost" d="M 215 85 C 210 65, 220 40, 235 35 C 245 35, 250 60, 245 85 Z" />
+                <path id="frohawk-2" class="lcd-ghost" d="M 225 75 C 220 50, 235 25, 250 20 C 260 20, 265 45, 255 75 Z" />
+                <path id="frohawk-3" class="lcd-ghost" d="M 235 75 C 235 45, 250 20, 265 25 C 275 30, 275 55, 265 80 Z" />
+                <path id="frohawk-4" class="lcd-ghost" d="M 200 110 L 225 85" stroke="#1a2412" stroke-width="3" />
+                <path id="frohawk-5" class="lcd-ghost" d="M 265 85 L 280 110" stroke="#1a2412" stroke-width="3" />
+              </g>
+
+              <!-- GAME OVER TEXT -->
+              <text id="lcd-game-over" x="170" y="130" text-anchor="middle" class="lcd-font text-3xl font-black fill-[#1a2412] hidden">
+                GAME OVER
+              </text>
+            </svg>
+
+          </div>
+        </div>
+
+        <!-- END OF DAY BREAKDOWN & INTERNET REVIEWS MODAL OVERLAY -->
+        <div id="day-breakdown-overlay" class="absolute inset-0 bg-[#9cb08d] z-30 p-3 sm:p-5 flex flex-col justify-between hidden border-4 border-stone-900 rounded-lg">
+          
+          <!-- Header -->
+          <div class="border-b-2 border-stone-900 pb-1 flex justify-between items-center">
+            <span class="font-black text-xs sm:text-base text-stone-950 uppercase tracking-widest"><span id="eod-lbl-breakdown">ABRECHNUNG</span> <span id="eod-lbl-day">TAG</span> <span id="eod-day-num">1</span></span>
+            <span id="eod-stars-display" class="text-sm sm:text-lg tracking-widest text-stone-950">★★★★★</span>
+          </div>
+
+          <!-- Expenses & Revenue Breakdown -->
+          <div class="my-2 space-y-1 text-[10px] sm:text-xs text-stone-900 font-extrabold">
+            <div class="flex justify-between">
+              <span id="eod-lbl-rev">TAGES-EINNAHMEN:</span>
+              <span id="eod-revenue" class="text-stone-950">+$0</span>
+            </div>
+            
+            <div class="border-t border-stone-800/30 pt-1 text-red-950">
+              <div class="flex justify-between text-[9px] sm:text-[11px]">
+                <span>- <span id="eod-lbl-rent">MIETE</span>:</span> <span id="eod-rent">-$45</span>
+              </div>
+              <div class="flex justify-between text-[9px] sm:text-[11px]">
+                <span>- <span id="eod-lbl-heat">HEIZUNG</span>:</span> <span id="eod-heating">-$15</span>
+              </div>
+              <div class="flex justify-between text-[9px] sm:text-[11px]">
+                <span>- <span id="eod-lbl-elec">STROM</span>:</span> <span id="eod-electricity">-$15</span>
+              </div>
+            </div>
+
+            <div class="flex justify-between border-t-2 border-stone-900 pt-1 text-xs sm:text-sm font-black">
+              <span id="eod-lbl-total">GESAMTKASSE:</span>
+              <span id="eod-total-cash">$0</span>
+            </div>
+          </div>
+
+          <!-- Internet Review Comment Box -->
+          <div class="bg-stone-900/10 p-2 rounded border border-stone-900/20 my-1">
+            <div id="eod-lbl-review-title" class="text-[8px] sm:text-[9px] text-stone-800 font-extrabold uppercase">ONLINE KUNDEN-BEWERTUNG:</div>
+            <div id="eod-review-comment" class="text-[10px] sm:text-xs font-black text-stone-950 italic mt-0.5">
+              "Unglaubliche Frisuren! Absolut empfehlenswert."
+            </div>
+            <div class="text-[8px] sm:text-[10px] text-stone-800 font-bold mt-1">
+              <span id="eod-lbl-price-trend">PREIS-ENTWICKLUNG MORGEN</span>: <span id="eod-price-change" class="text-stone-950 font-black">+25% BONUS</span>
+            </div>
+          </div>
+
+          <!-- Debt / Bankruptcy Alert Banner -->
+          <div id="eod-debt-alert" class="bg-red-950/20 text-red-950 p-1.5 rounded text-center border border-red-950/40 text-[9px] sm:text-[11px] font-black uppercase hidden">
+            ⚠️ <span id="eod-lbl-debt-alert">ACHTUNG: KASSE IM MINUS! SCHULDEN-TAG</span> <span id="eod-debt-count">1</span>/5!
+          </div>
+
+          <!-- Continue Button -->
+          <button id="btn-next-day" class="w-full bg-stone-900 hover:bg-stone-800 text-yellow-300 font-black py-2 rounded text-xs sm:text-sm uppercase tracking-wider shadow">
+            NÄCHSTEN TAG STARTEN ▶
+          </button>
+
+        </div>
+
+        <!-- BOTTOM LCD INFO FOOTER -->
+        <div class="flex justify-between items-center text-[7px] sm:text-[9px] text-stone-900 font-bold border-t border-stone-800/20 pt-1">
+          <span><span id="lbl-clients">KUNDINNEN</span>: <span id="clients-count-display" class="text-stone-950 font-extrabold">0</span></span>
+          <span>STREAK: <span id="streak-display">0</span></span>
+          <span><span id="lbl-today-rev">TAGES-EINNAHMEN</span>: <span id="day-earnings-display" class="text-stone-950 font-extrabold">$0</span></span>
+        </div>
+
+      </div>
+
+      <!-- HARDWARE CONTROLS & BUTTONS -->
+      <div class="mt-3 sm:mt-5 grid grid-cols-12 gap-2 items-center">
+        
+        <!-- LEFT: D-PAD DIRECTIONAL BUTTONS -->
+        <div class="col-span-6 sm:col-span-5 flex justify-center items-center">
+          <div class="relative w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+            <div class="absolute w-10 sm:w-12 h-32 sm:h-40 bg-stone-900 rounded-md shadow-lg"></div>
+            <div class="absolute h-10 sm:h-12 w-32 sm:w-40 bg-stone-900 rounded-md shadow-lg"></div>
+
+            <button id="btn-up" class="d-pad-btn absolute top-0 w-10 h-10 sm:w-12 sm:h-12 rounded-t-md flex items-center justify-center text-white text-base font-bold">▲</button>
+            <button id="btn-down" class="d-pad-btn absolute bottom-0 w-10 h-10 sm:w-12 sm:h-12 rounded-b-md flex items-center justify-center text-white text-base font-bold">▼</button>
+            <button id="btn-left" class="d-pad-btn absolute left-0 w-10 h-10 sm:w-12 sm:h-12 rounded-l-md flex items-center justify-center text-white text-base font-bold">◀</button>
+            <button id="btn-right" class="d-pad-btn absolute right-0 w-10 h-10 sm:w-12 sm:h-12 rounded-r-md flex items-center justify-center text-white text-base font-bold">▶</button>
+
+            <div class="absolute w-7 h-7 sm:w-9 sm:h-9 bg-stone-800 rounded-full border border-stone-700 pointer-events-none"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT: SYSTEM CONTROL BUTTONS -->
+        <div class="col-span-6 sm:col-span-7 flex flex-wrap justify-end gap-1.5 sm:gap-3 items-center">
+          
+          <div class="text-center">
+            <button id="btn-game-a" class="gw-btn bg-red-700 hover:bg-red-600 text-yellow-100 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs border border-red-900">
+              A
+            </button>
+            <span class="text-[7px] sm:text-[8px] text-stone-900 font-extrabold block mt-0.5">GAME A</span>
+          </div>
+
+          <div class="text-center">
+            <button id="btn-game-b" class="gw-btn bg-red-700 hover:bg-red-600 text-yellow-100 w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs border border-red-900">
+              B
+            </button>
+            <span class="text-[7px] sm:text-[8px] text-stone-900 font-extrabold block mt-0.5">GAME B</span>
+          </div>
+
+          <div class="text-center">
+            <button id="btn-reset" class="gw-btn bg-amber-700 hover:bg-amber-600 text-stone-100 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-[8px] sm:text-xs border border-amber-900">
+              ↺
+            </button>
+            <span class="text-[7px] sm:text-[8px] text-stone-900 font-extrabold block mt-0.5">RESET</span>
+          </div>
+
+          <div class="text-center">
+            <button id="btn-sound" class="gw-btn bg-amber-600 hover:bg-amber-500 text-stone-900 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-[8px] sm:text-xs border border-amber-800">
+              🔊
+            </button>
+            <span class="text-[7px] sm:text-[8px] text-stone-900 font-extrabold block mt-0.5">SOUND</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // --- TRANSLATION DICTIONARY ---
+    const TRANSLATIONS = {
+      DE: {
+        lblCash: "SALON KASSE",
+        lblRecord: "REKORD",
+        lblDaytime: "TAGES-ZEIT",
+        lblMisses: "FEHLER (MAX 8)",
+        lblDebt: "SCHULDEN",
+        lblClientTitle: "AKTUELLE KUNDIN",
+        lblArrowSteps: "PFEIL-SCHRITTE",
+        lblPrices: "PREISE",
+        lblFee: "HONORAR",
+        lblClients: "KUNDINNEN",
+        lblTodayRev: "TAGES-EINNAHMEN",
+        eodBreakdown: "ABRECHNUNG",
+        eodDay: "TAG",
+        eodRev: "TAGES-EINNAHMEN",
+        eodRent: "MIETE",
+        eodHeat: "HEIZUNG",
+        eodElec: "STROM",
+        eodTotal: "GESAMTKASSE",
+        eodReviewTitle: "ONLINE KUNDEN-BEWERTUNG:",
+        eodPriceTrend: "PREIS-ENTWICKLUNG MORGEN",
+        eodDebtAlert: "ACHTUNG: KASSE IM MINUS! SCHULDEN-TAG",
+        btnNextDay: "NÄCHSTEN TAG STARTEN ▶",
+        pressGame: "DRÜCKE GAME A/B",
+        salonOpen: "SALON OFFEN!",
+        dayStart: "TAG {0} START!",
+        clientHappy: "KUNDIN ZUFRIEDEN! +${0}",
+        nextClient: "NÄCHSTE KUNDIN!",
+        penalty: "STRAFE! -$10",
+        styleNow: "FRISIEREN!",
+        gameOverMisses: "GAME OVER (8 FEHLER)",
+        gameOverDebt: "BANKROTT (5 TAGE MINUS)",
+        bankruptBtn: "INSOLVENZ - GAME OVER",
+        highDemand: "HOHE NACHFRAGE!",
+        badRep: "SCHLECHTER RUF!",
+        unchanged: "UNVERÄNDERT",
+        styles: [
+          '1. CLASSIC AFRO PUFF',
+          '2. BANTU KNOTS',
+          '3. FULANI CORNROWS',
+          '4. GODDESS BRAIDS',
+          '5. FROHAWK UPDO'
+        ],
+        reviews: {
+          5: [
+            "Wunderschön! Absoluter Profi!",
+            "Perfekte Braids! Ich komme wieder!",
+            "Schnell und wunderschöne Frisur!"
+          ],
+          3: [
+            "Sehr solide Arbeit!",
+            "Sieht gut aus, ging ganz flott.",
+            "Guter Salon, weiter so!"
+          ],
+          1: [
+            "Aua! Zu viele Patzer!",
+            "Sehr chaotisch und schmerzhaft...",
+            "Keine gute Erfahrung heute."
+          ]
+        }
+      },
+      EN: {
+        lblCash: "SALON CASH",
+        lblRecord: "RECORD",
+        lblDaytime: "DAY TIMER",
+        lblMisses: "MISSES (MAX 8)",
+        lblDebt: "DEBT",
+        lblClientTitle: "CURRENT CLIENT",
+        lblArrowSteps: "ARROW STEPS",
+        lblPrices: "PRICES",
+        lblFee: "FEE",
+        lblClients: "CLIENTS",
+        lblTodayRev: "DAY EARNINGS",
+        eodBreakdown: "BREAKDOWN",
+        eodDay: "DAY",
+        eodRev: "DAY REVENUE",
+        eodRent: "RENT",
+        eodHeat: "HEATING",
+        eodElec: "ELECTRICITY",
+        eodTotal: "TOTAL CASH",
+        eodReviewTitle: "ONLINE CLIENT REVIEW:",
+        eodPriceTrend: "PRICE TREND TOMORROW",
+        eodDebtAlert: "WARNING: CASH IN MINUS! DEBT DAY",
+        btnNextDay: "START NEXT DAY ▶",
+        pressGame: "PRESS GAME A/B",
+        salonOpen: "SALON OPEN!",
+        dayStart: "DAY {0} START!",
+        clientHappy: "HAPPY CLIENT! +${0}",
+        nextClient: "NEXT CLIENT!",
+        penalty: "PENALTY! -$10",
+        styleNow: "STYLE NOW!",
+        gameOverMisses: "GAME OVER (8 MISSES)",
+        gameOverDebt: "BANKRUPT (5 DAYS DEBT)",
+        bankruptBtn: "BANKRUPTCY - GAME OVER",
+        highDemand: "HIGH DEMAND!",
+        badRep: "BAD REPUTATION!",
+        unchanged: "UNCHANGED",
+        styles: [
+          '1. CLASSIC AFRO PUFF',
+          '2. BANTU KNOTS',
+          '3. FULANI CORNROWS',
+          '4. GODDESS BRAIDS',
+          '5. FROHAWK UPDO'
+        ],
+        reviews: {
+          5: [
+            "Gorgeous! Absolute professional!",
+            "Perfect braids! I'll be back!",
+            "Super quick & beautiful hairstyle!"
+          ],
+          3: [
+            "Very solid work!",
+            "Looks good, nice and quick.",
+            "Good salon, keep it up!"
+          ],
+          1: [
+            "Ouch! Too many mistakes!",
+            "Messy and painful experience...",
+            "Not a good visit today."
+          ]
+        }
+      },
+      FR: {
+        lblCash: "CAISSE SALON",
+        lblRecord: "RECORD",
+        lblDaytime: "MINUTERIE",
+        lblMisses: "ERREURS (MAX 8)",
+        lblDebt: "DETTES",
+        lblClientTitle: "CLIENTE ACTUELLE",
+        lblArrowSteps: "ÉTAPES FLÈCHES",
+        lblPrices: "TARIFS",
+        lblFee: "HONORAIRE",
+        lblClients: "CLIENTES",
+        lblTodayRev: "RECETTE JOUR",
+        eodBreakdown: "BILAN",
+        eodDay: "JOUR",
+        eodRev: "RECETTES DU JOUR",
+        eodRent: "LOYER",
+        eodHeat: "CHAUFFAGE",
+        eodElec: "ÉLECTRICITÉ",
+        eodTotal: "CAISSE TOTALE",
+        eodReviewTitle: "AVIS CLIENTE EN LIGNE:",
+        eodPriceTrend: "ÉVOLUTION TARIFS DEMAIN",
+        eodDebtAlert: "ATTENTION: CAISSE EN NÉGATIF ! DETTE JOUR",
+        btnNextDay: "LANCER LE JOUR SUIVANT ▶",
+        pressGame: "APPUYEZ SUR GAME A/B",
+        salonOpen: "SALON OUVERT !",
+        dayStart: "JOUR {0} DÉBUTE !",
+        clientHappy: "CLIENTE RAVIE ! +${0}",
+        nextClient: "CLIENTE SUIVANTE !",
+        penalty: "PÉNALITÉ ! -$10",
+        styleNow: "COIFFEZ !",
+        gameOverMisses: "GAME OVER (8 ERREURS)",
+        gameOverDebt: "FAILLITE (5 JOURS DETTE)",
+        bankruptBtn: "FAILLITE - GAME OVER",
+        highDemand: "FORTE DEMANDE !",
+        badRep: "MAUVAISE RÉPUTATION !",
+        unchanged: "INCHANGÉ",
+        styles: [
+          '1. CLASSIC AFRO PUFF',
+          '2. BANTU KNOTS',
+          '3. FULANI CORNROWS',
+          '4. GODDESS BRAIDS',
+          '5. FROHAWK UPDO'
+        ],
+        reviews: {
+          5: [
+            "Magnifique ! Pro jusqu'au bout !",
+            "Tresses parfaites ! Je reviendrai !",
+            "Super rapide et très jolie coiffure !"
+          ],
+          3: [
+            "Travail très solide !",
+            "Très joli et rapide.",
+            "Bon salon, continuez ainsi !"
+          ],
+          1: [
+            "Aïe ! Trop d'erreurs !",
+            "Très chaotique et douloureux...",
+            "Pas une bonne expérience aujourd'hui."
+          ]
+        }
+      }
+    };
+
+    // --- AUDIO SYNTHESIZER ENGINE ---
+    class RetroSoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+      }
+
+      playTone(freq, type = 'square', duration = 0.08, vol = 0.12) {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      playStep() { this.playTone(980, 'square', 0.04, 0.12); }
+
+      playTick(isUrgent = false) {
+        if (this.muted || !this.ctx) return;
+        this.playTone(isUrgent ? 1300 : 880, 'square', isUrgent ? 0.04 : 0.03, 0.08);
+      }
+
+      playCashChaChing() {
+        if (this.muted || !this.ctx) return;
+        [987.77, 1318.51, 1760.00].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'square', 0.08, 0.15), i * 50);
+        });
+      }
+
+      playCustomerComplete() {
+        if (this.muted || !this.ctx) return;
+        [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'square', 0.09, 0.18), i * 65);
+        });
+      }
+
+      playDayEndFanfare() {
+        if (this.muted || !this.ctx) return;
+        [587.33, 739.99, 880.00, 1174.66, 1479.98].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'square', 0.12, 0.18), i * 90);
+        });
+      }
+
+      playDebtWarning() {
+        if (this.muted || !this.ctx) return;
+        [220, 180, 140].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'sawtooth', 0.15, 0.2), i * 100);
+        });
+      }
+
+      playError() {
+        if (this.muted || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.22);
+          gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.22);
+        } catch (e) {}
+      }
+
+      playGameOver() {
+        if (this.muted || !this.ctx) return;
+        [440, 370, 310, 220].forEach((f, i) => {
+          setTimeout(() => this.playTone(f, 'sawtooth', 0.25, 0.18), i * 160);
+        });
+      }
+    }
+
+    // --- GAME CONSTANTS & ECONOMY ---
+    const AUDIO = new RetroSoundEngine();
+    const ARROWS = ['UP', 'RIGHT', 'DOWN', 'LEFT'];
+    const ARROW_SYMBOLS = { 'UP': '▲', 'RIGHT': '▶', 'DOWN': '▼', 'LEFT': '◀' };
+    const MAX_MISSES = 8;
+    const DAY_DURATION_SECONDS = 25;
+    const MAX_DEBT_DAYS = 5;
+
+    const HAIRSTYLES = [
+      { id: 'style-afro', prefix: 'afro', totalSegments: 8, basePay: 30 },
+      { id: 'style-bantu', prefix: 'bantu', totalSegments: 6, basePay: 35 },
+      { id: 'style-fulani', prefix: 'fulani', totalSegments: 6, basePay: 40 },
+      { id: 'style-goddess', prefix: 'goddess', totalSegments: 6, basePay: 45 },
+      { id: 'style-frohawk', prefix: 'frohawk', totalSegments: 5, basePay: 50 }
+    ];
+
+    let currentLang = 'DE';
+
+    let gameState = {
+      active: false,
+      mode: 'GAME A',
+      cash: 0,
+      highScore: 0,
+      misses: 0,
+      day: 1,
+      daySecondsLeft: DAY_DURATION_SECONDS,
+      todayEarnings: 0,
+      todayClientsCount: 0,
+      todayMissesCount: 0,
+      priceMultiplier: 1.0,
+      debtConsecutiveDays: 0,
+      completedClientsTotal: 0,
+      currentStyleIndex: 0,
+      currentSegmentIndex: 0,
+      currentSequence: [],
+      sequenceInputIndex: 0,
+      streak: 0,
+      dayTimerInterval: null
+    };
+
+    // DOM ELEMENTS
+    let cashDisplay, highscoreDisplay, timerDisplay, dayDisplay, missContainer, debtBadge, debtDaysText,
+        styleNameDisplay, sequenceContainer, progressBar, rewardDisplay, priceMultDisplay, clientsCountDisplay, 
+        streakDisplay, dayEarningsDisplay, statusText, gameModeBadge, gameOverText, daysieArmIdle, daysieArmStyling,
+        breakdownOverlay, eodDayNum, eodStarsDisplay, eodRevenue, eodRent, eodHeating, eodElectricity,
+        eodTotalCash, eodReviewComment, eodPriceChange, eodDebtAlert, eodDebtCount, btnNextDay;
+
+    function cacheDomElements() {
+      cashDisplay = document.getElementById('cash-display');
+      highscoreDisplay = document.getElementById('highscore-display');
+      timerDisplay = document.getElementById('timer-display');
+      dayDisplay = document.getElementById('day-display');
+      missContainer = document.getElementById('miss-container');
+      debtBadge = document.getElementById('debt-badge');
+      debtDaysText = document.getElementById('debt-days-text');
+
+      styleNameDisplay = document.getElementById('style-name-display');
+      sequenceContainer = document.getElementById('sequence-container');
+      progressBar = document.getElementById('progress-bar');
+      rewardDisplay = document.getElementById('reward-display');
+      priceMultDisplay = document.getElementById('price-mult-display');
+
+      clientsCountDisplay = document.getElementById('clients-count-display');
+      streakDisplay = document.getElementById('streak-display');
+      dayEarningsDisplay = document.getElementById('day-earnings-display');
+      statusText = document.getElementById('status-text');
+      gameModeBadge = document.getElementById('game-mode-badge');
+      gameOverText = document.getElementById('lcd-game-over');
+      daysieArmIdle = document.getElementById('daysie-arm-idle');
+      daysieArmStyling = document.getElementById('daysie-arm-styling');
+
+      breakdownOverlay = document.getElementById('day-breakdown-overlay');
+      eodDayNum = document.getElementById('eod-day-num');
+      eodStarsDisplay = document.getElementById('eod-stars-display');
+      eodRevenue = document.getElementById('eod-revenue');
+      eodRent = document.getElementById('eod-rent');
+      eodHeating = document.getElementById('eod-heating');
+      eodElectricity = document.getElementById('eod-electricity');
+      eodTotalCash = document.getElementById('eod-total-cash');
+      eodReviewComment = document.getElementById('eod-review-comment');
+      eodPriceChange = document.getElementById('eod-price-change');
+      eodDebtAlert = document.getElementById('eod-debt-alert');
+      eodDebtCount = document.getElementById('eod-debt-count');
+      btnNextDay = document.getElementById('btn-next-day');
+    }
+
+    function setLanguage(lang) {
+      if (!TRANSLATIONS[lang]) return;
+      currentLang = lang;
+
+      ['de', 'en', 'fr'].forEach(l => {
+        const btn = document.getElementById(`lang-${l}`);
+        if (btn) {
+          if (l === lang.toLowerCase()) {
+            btn.className = "lang-btn active-lang";
+          } else {
+            btn.className = "lang-btn inactive-lang";
+          }
+        }
+      });
+
+      const t = TRANSLATIONS[lang];
+      document.getElementById('lbl-cash').innerText = t.lblCash;
+      document.getElementById('lbl-record').innerText = t.lblRecord;
+      document.getElementById('lbl-daytime').innerText = t.lblDaytime;
+      document.getElementById('lbl-misses').innerText = t.lblMisses;
+      document.getElementById('lbl-debt').innerText = t.lblDebt;
+      document.getElementById('lbl-client-title').innerText = t.lblClientTitle;
+      document.getElementById('lbl-arrow-steps').innerText = t.lblArrowSteps;
+      document.getElementById('lbl-prices').innerText = t.lblPrices;
+      document.getElementById('lbl-fee').innerText = t.lblFee;
+      document.getElementById('lbl-clients').innerText = t.lblClients;
+      document.getElementById('lbl-today-rev').innerText = t.lblTodayRev;
+
+      document.getElementById('eod-lbl-breakdown').innerText = t.eodBreakdown;
+      document.getElementById('eod-lbl-day').innerText = t.eodDay;
+      document.getElementById('eod-lbl-rev').innerText = t.eodRev;
+      document.getElementById('eod-lbl-rent').innerText = t.eodRent;
+      document.getElementById('eod-lbl-heat').innerText = t.eodHeat;
+      document.getElementById('eod-lbl-elec').innerText = t.eodElec;
+      document.getElementById('eod-lbl-total').innerText = t.eodTotal;
+      document.getElementById('eod-lbl-review-title').innerText = t.eodReviewTitle;
+      document.getElementById('eod-lbl-price-trend').innerText = t.eodPriceTrend;
+
+      const debtPrefix = t.eodDebtAlert.split('TAG')[0] || t.eodDebtAlert;
+      document.getElementById('eod-lbl-debt-alert').innerText = debtPrefix;
+
+      if (!gameState.active) {
+        statusText.innerText = t.pressGame;
+      } else {
+        dayDisplay.innerText = `${t.eodDay} ${gameState.day}`;
+        styleNameDisplay.innerText = t.styles[gameState.currentStyleIndex];
+      }
+    }
+
+    function initGame() {
+      cacheDomElements();
+      try {
+        gameState.highScore = parseInt(localStorage.getItem('daysies_salon_highrevenue') || '0');
+      } catch (e) {
+        gameState.highScore = 0;
+      }
+      highscoreDisplay.innerText = `$ ${String(gameState.highScore).padStart(4, '0')}`;
+      renderMissIcons();
+      hideAllHairstyles();
+      setLanguage('DE');
+      updateDisplay();
+    }
+
+    function renderMissIcons() {
+      if (!missContainer) return;
+      missContainer.innerHTML = '';
+      for (let i = 0; i < MAX_MISSES; i++) {
+        const box = document.createElement('div');
+        box.className = `w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-sm flex items-center justify-center font-bold text-[7px] sm:text-[9px] ${
+          i < gameState.misses 
+            ? 'bg-stone-900 text-yellow-400 border border-stone-950' 
+            : 'bg-stone-800/20 text-stone-800/20 border border-stone-800/20'
+        }`;
+        box.innerText = 'X';
+        missContainer.appendChild(box);
+      }
+    }
+
+    function startNewGame(mode = 'GAME A') {
+      AUDIO.init();
+      AUDIO.playTone(650, 'square', 0.1, 0.15);
+
+      stopTimers();
+      breakdownOverlay.classList.add('hidden');
+
+      gameState.active = true;
+      gameState.mode = mode;
+      gameState.cash = 0;
+      gameState.misses = 0;
+      gameState.day = 1;
+      gameState.todayEarnings = 0;
+      gameState.todayClientsCount = 0;
+      gameState.todayMissesCount = 0;
+      gameState.priceMultiplier = 1.0;
+      gameState.debtConsecutiveDays = 0;
+      gameState.completedClientsTotal = 0;
+      gameState.currentStyleIndex = 0;
+      gameState.streak = 0;
+
+      const t = TRANSLATIONS[currentLang];
+      gameModeBadge.innerText = mode;
+      statusText.innerText = t.salonOpen;
+      gameOverText.classList.add('hidden');
+      debtBadge.classList.add('hidden');
+
+      renderMissIcons();
+      startDay(1);
+    }
+
+    function startDay(dayNumber) {
+      const t = TRANSLATIONS[currentLang];
+      gameState.day = dayNumber;
+      gameState.daySecondsLeft = DAY_DURATION_SECONDS;
+      gameState.todayEarnings = 0;
+      gameState.todayClientsCount = 0;
+      gameState.todayMissesCount = 0;
+
+      dayDisplay.innerText = `${t.eodDay} ${gameState.day}`;
+      statusText.innerText = t.dayStart.replace('{0}', gameState.day);
+
+      breakdownOverlay.classList.add('hidden');
+
+      setupCurrentCustomer();
+      startDayTimer();
+      updateDisplay();
+    }
+
+    function stopTimers() {
+      clearInterval(gameState.dayTimerInterval);
+    }
+
+    function startDayTimer() {
+      clearInterval(gameState.dayTimerInterval);
+      timerDisplay.innerText = String(gameState.daySecondsLeft).padStart(2, '0');
+
+      gameState.dayTimerInterval = setInterval(() => {
+        if (!gameState.active) return;
+
+        gameState.daySecondsLeft--;
+        timerDisplay.innerText = String(gameState.daySecondsLeft).padStart(2, '0');
+
+        if (gameState.daySecondsLeft > 0) {
+          AUDIO.playTick(gameState.daySecondsLeft <= 5);
+          if (gameState.daySecondsLeft <= 5) {
+            timerDisplay.classList.add('blink-anim');
+          } else {
+            timerDisplay.classList.remove('blink-anim');
+          }
+        } else {
+          timerDisplay.classList.remove('blink-anim');
+          finishSalonDay();
+        }
+      }, 1000);
+    }
+
+    function finishSalonDay() {
+      stopTimers();
+      AUDIO.playDayEndFanfare();
+
+      const t = TRANSLATIONS[currentLang];
+      const rent = gameState.mode === 'GAME B' ? 60 : 45;
+      const heating = gameState.mode === 'GAME B' ? 20 : 15;
+      const electricity = gameState.mode === 'GAME B' ? 20 : 15;
+      const totalExpenses = rent + heating + electricity;
+
+      gameState.cash -= totalExpenses;
+
+      let stars = 5;
+      if (gameState.todayMissesCount >= 1) stars -= 1;
+      if (gameState.todayMissesCount >= 3) stars -= 1;
+      if (gameState.todayClientsCount < 1) stars -= 2;
+      else if (gameState.todayClientsCount < 2) stars -= 1;
+      stars = Math.max(1, Math.min(5, stars));
+
+      let commentGroup = stars >= 4 ? 5 : (stars === 3 ? 3 : 1);
+      const reviewsList = t.reviews[commentGroup];
+      const comment = reviewsList[Math.floor(Math.random() * reviewsList.length)];
+
+      let priceChangeText = "";
+      if (stars >= 4) {
+        gameState.priceMultiplier = Math.min(2.2, gameState.priceMultiplier + (stars === 5 ? 0.30 : 0.15));
+        priceChangeText = `+${Math.round((gameState.priceMultiplier - 1) * 100)}% ${t.highDemand}`;
+      } else if (stars <= 2) {
+        gameState.priceMultiplier = Math.max(0.6, gameState.priceMultiplier - (stars === 1 ? 0.25 : 0.15));
+        priceChangeText = `${Math.round((gameState.priceMultiplier - 1) * 100)}% ${t.badRep}`;
+      } else {
+        priceChangeText = `${Math.round((gameState.priceMultiplier - 1) * 100)}% ${t.unchanged}`;
+      }
+
+      if (gameState.cash < 0) {
+        gameState.debtConsecutiveDays++;
+        AUDIO.playDebtWarning();
+      } else {
+        gameState.debtConsecutiveDays = 0;
+      }
+
+      eodDayNum.innerText = gameState.day;
+      eodStarsDisplay.innerText = "★".repeat(stars) + "☆".repeat(5 - stars);
+      eodRevenue.innerText = `+$${gameState.todayEarnings}`;
+      eodRent.innerText = `-$${rent}`;
+      eodHeating.innerText = `-$${heating}`;
+      eodElectricity.innerText = `-$${electricity}`;
+
+      const cashSign = gameState.cash < 0 ? '-$' : '$';
+      eodTotalCash.innerText = `${cashSign}${Math.abs(gameState.cash)}`;
+      eodReviewComment.innerText = `"${comment}"`;
+      eodPriceChange.innerText = priceChangeText;
+
+      if (gameState.debtConsecutiveDays > 0) {
+        eodDebtAlert.classList.remove('hidden');
+        eodDebtCount.innerText = gameState.debtConsecutiveDays;
+      } else {
+        eodDebtAlert.classList.add('hidden');
+      }
+
+      breakdownOverlay.classList.remove('hidden');
+
+      if (gameState.debtConsecutiveDays >= MAX_DEBT_DAYS) {
+        btnNextDay.innerText = t.bankruptBtn;
+        btnNextDay.onclick = () => {
+          breakdownOverlay.classList.add('hidden');
+          triggerGameOver(true);
+        };
+      } else {
+        btnNextDay.innerText = t.btnNextDay;
+        btnNextDay.onclick = () => {
+          startDay(gameState.day + 1);
+        };
+      }
+
+      updateDisplay();
+    }
+
+    function setupCurrentCustomer() {
+      hideAllHairstyles();
+      const style = HAIRSTYLES[gameState.currentStyleIndex];
+      const t = TRANSLATIONS[currentLang];
+      styleNameDisplay.innerText = t.styles[gameState.currentStyleIndex];
+
+      const payout = Math.round((style.basePay + (gameState.mode === 'GAME B' ? 10 : 0)) * gameState.priceMultiplier);
+      rewardDisplay.innerText = `+$${payout}`;
+      priceMultDisplay.innerText = `${Math.round(gameState.priceMultiplier * 100)}%`;
+
+      gameState.currentSegmentIndex = 0;
+      generateNextSequence();
+    }
+
+    function hideAllHairstyles() {
+      HAIRSTYLES.forEach(style => {
+        for (let i = 1; i <= style.totalSegments; i++) {
+          const elem = document.getElementById(`${style.prefix}-${i}`);
+          if (elem) {
+            elem.classList.remove('lcd-active');
+            elem.classList.add('lcd-ghost');
+          }
+        }
+      });
+    }
+
+    function generateNextSequence() {
+      let seqLength = 3;
+      if (gameState.mode === 'GAME B') seqLength = 4;
+      if (gameState.day >= 3) seqLength += 1;
+
+      gameState.currentSequence = [];
+      for (let i = 0; i < seqLength; i++) {
+        const randArrow = ARROWS[Math.floor(Math.random() * ARROWS.length)];
+        gameState.currentSequence.push(randArrow);
+      }
+      gameState.sequenceInputIndex = 0;
+
+      renderSequenceUI();
+      updateProgressBar();
+    }
+
+    function renderSequenceUI() {
+      sequenceContainer.innerHTML = '';
+      gameState.currentSequence.forEach((arrow, idx) => {
+        const box = document.createElement('div');
+        
+        let styleClass = 'bg-stone-800/10 text-stone-800/30 border-stone-800/20';
+        if (idx < gameState.sequenceInputIndex) {
+          styleClass = 'bg-stone-900 text-yellow-400 border-stone-950 font-black shadow-inner';
+        } else if (idx === gameState.sequenceInputIndex) {
+          styleClass = 'bg-stone-900 text-stone-100 border-stone-950 font-black ring-2 ring-stone-800 scale-105';
+        }
+
+        box.className = `w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center text-xs border transition-all ${styleClass}`;
+        box.innerText = ARROW_SYMBOLS[arrow];
+        sequenceContainer.appendChild(box);
+      });
+    }
+
+    function updateProgressBar() {
+      const style = HAIRSTYLES[gameState.currentStyleIndex];
+      const pct = Math.round((gameState.currentSegmentIndex / style.totalSegments) * 100);
+      progressBar.style.width = `${pct}%`;
+    }
+
+    function handleInput(direction) {
+      if (!gameState.active || !breakdownOverlay.classList.contains('hidden')) return;
+
+      const t = TRANSLATIONS[currentLang];
+      const expected = gameState.currentSequence[gameState.sequenceInputIndex];
+
+      if (direction === expected) {
+        AUDIO.playStep();
+        gameState.sequenceInputIndex++;
+        animateDaysieArm();
+
+        const stepCash = Math.max(1, Math.round(2 * gameState.priceMultiplier));
+        addCash(stepCash);
+
+        if (gameState.sequenceInputIndex >= gameState.currentSequence.length) {
+          AUDIO.playCashChaChing();
+          gameState.streak++;
+
+          sculptCurrentSegment();
+          gameState.currentSegmentIndex++;
+          const currentStyle = HAIRSTYLES[gameState.currentStyleIndex];
+
+          if (gameState.currentSegmentIndex >= currentStyle.totalSegments) {
+            AUDIO.playCustomerComplete();
+            gameState.completedClientsTotal++;
+            gameState.todayClientsCount++;
+
+            const bonusPay = Math.round((currentStyle.basePay + (gameState.mode === 'GAME B' ? 10 : 0)) * gameState.priceMultiplier);
+            addCash(bonusPay);
+
+            statusText.innerText = t.clientHappy.replace('{0}', bonusPay);
+
+            setTimeout(() => {
+              if (gameState.active && breakdownOverlay.classList.contains('hidden')) {
+                gameState.currentStyleIndex = Math.floor(Math.random() * HAIRSTYLES.length);
+                setupCurrentCustomer();
+                statusText.innerText = t.nextClient;
+              }
+            }, 450);
+
+          } else {
+            generateNextSequence();
+          }
+
+        } else {
+          renderSequenceUI();
+        }
+
+      } else {
+        AUDIO.playError();
+
+        gameState.misses++;
+        gameState.todayMissesCount++;
+        gameState.streak = 0;
+        gameState.sequenceInputIndex = 0;
+
+        deductCash(10);
+
+        statusText.innerText = t.penalty;
+        renderMissIcons();
+        renderSequenceUI();
+
+        if (gameState.misses >= MAX_MISSES) {
+          triggerGameOver(false);
+        } else {
+          setTimeout(() => {
+            if (gameState.active && breakdownOverlay.classList.contains('hidden')) {
+              statusText.innerText = t.styleNow;
+            }
+          }, 500);
+        }
+      }
+
+      updateDisplay();
+    }
+
+    function addCash(amount) {
+      gameState.cash += amount;
+      gameState.todayEarnings += amount;
+
+      if (gameState.cash > gameState.highScore) {
+        gameState.highScore = gameState.cash;
+        try {
+          localStorage.setItem('daysies_salon_highrevenue', gameState.highScore.toString());
+        } catch(e){}
+      }
+    }
+
+    function deductCash(amount) {
+      gameState.cash -= amount;
+    }
+
+    function animateDaysieArm() {
+      if (!daysieArmIdle || !daysieArmStyling) return;
+      daysieArmIdle.classList.remove('lcd-active');
+      daysieArmIdle.classList.add('lcd-ghost');
+      daysieArmStyling.classList.remove('lcd-ghost');
+      daysieArmStyling.classList.add('lcd-active');
+
+      setTimeout(() => {
+        daysieArmStyling.classList.remove('lcd-active');
+        daysieArmStyling.classList.add('lcd-ghost');
+        daysieArmIdle.classList.remove('lcd-ghost');
+        daysieArmIdle.classList.add('lcd-active');
+      }, 160);
+    }
+
+    function sculptCurrentSegment() {
+      const style = HAIRSTYLES[gameState.currentStyleIndex];
+      const segNum = gameState.currentSegmentIndex + 1;
+      const elem = document.getElementById(`${style.prefix}-${segNum}`);
+      if (elem) {
+        elem.classList.remove('lcd-ghost');
+        elem.classList.add('lcd-active');
+      }
+    }
+
+    function triggerGameOver(isBankrupt = false) {
+      const t = TRANSLATIONS[currentLang];
+      gameState.active = false;
+      stopTimers();
+      if (timerDisplay) timerDisplay.classList.remove('blink-anim');
+      AUDIO.playGameOver();
+
+      statusText.innerText = isBankrupt ? t.gameOverDebt : t.gameOverMisses;
+      if (gameOverText) gameOverText.classList.remove('hidden');
+    }
+
+    function updateDisplay() {
+      if (cashDisplay) {
+        const prefix = gameState.cash < 0 ? '-$' : '$ ';
+        cashDisplay.innerText = `${prefix}${String(Math.abs(gameState.cash)).padStart(4, '0')}`;
+      }
+      if (highscoreDisplay) highscoreDisplay.innerText = `$ ${String(gameState.highScore).padStart(4, '0')}`;
+      if (streakDisplay) streakDisplay.innerText = gameState.streak;
+      if (clientsCountDisplay) clientsCountDisplay.innerText = gameState.completedClientsTotal;
+      if (dayEarningsDisplay) dayEarningsDisplay.innerText = `$${gameState.todayEarnings}`;
+      
+      if (debtBadge) {
+        if (gameState.debtConsecutiveDays > 0) {
+          debtBadge.classList.remove('hidden');
+          debtDaysText.innerText = `${gameState.debtConsecutiveDays}/${MAX_DEBT_DAYS}`;
+        } else {
+          debtBadge.classList.add('hidden');
+        }
+      }
+    }
+
+    function animateBtn(btnId) {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.classList.add('active');
+        setTimeout(() => btn.classList.remove('active'), 100);
+      }
+    }
+
+    function setupEventListeners() {
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault();
+        }
+
+        switch (e.key) {
+          case 'ArrowUp': animateBtn('btn-up'); handleInput('UP'); break;
+          case 'ArrowDown': animateBtn('btn-down'); handleInput('DOWN'); break;
+          case 'ArrowLeft': animateBtn('btn-left'); handleInput('LEFT'); break;
+          case 'ArrowRight': animateBtn('btn-right'); handleInput('RIGHT'); break;
+        }
+      });
+
+      document.getElementById('btn-up').addEventListener('click', () => handleInput('UP'));
+      document.getElementById('btn-down').addEventListener('click', () => handleInput('DOWN'));
+      document.getElementById('btn-left').addEventListener('click', () => handleInput('LEFT'));
+      document.getElementById('btn-right').addEventListener('click', () => handleInput('RIGHT'));
+
+      document.getElementById('btn-game-a').addEventListener('click', () => startNewGame('GAME A'));
+      document.getElementById('btn-game-b').addEventListener('click', () => startNewGame('GAME B'));
+      document.getElementById('btn-reset').addEventListener('click', () => startNewGame(gameState.mode));
+
+      document.getElementById('lang-de').addEventListener('click', () => setLanguage('DE'));
+      document.getElementById('lang-en').addEventListener('click', () => setLanguage('EN'));
+      document.getElementById('lang-fr').addEventListener('click', () => setLanguage('FR'));
+
+      const soundBtn = document.getElementById('btn-sound');
+      soundBtn.addEventListener('click', () => {
+        AUDIO.init();
+        AUDIO.muted = !AUDIO.muted;
+        soundBtn.innerText = AUDIO.muted ? '🔇' : '🔊';
+      });
+    }
+
+    function boot() {
+      initGame();
+      setupEventListeners();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  </script>
+</body>
+</html>
